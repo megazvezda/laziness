@@ -98,17 +98,17 @@ func postMoodle(ctx context.Context, path string, values url.Values, result *moo
 	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("Moodle returned HTTP %d", resp.StatusCode)
+		return fmt.Errorf("moodle returned HTTP %d", resp.StatusCode)
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
 		return fmt.Errorf("decode response: %w", err)
 	}
 	if result.ErrorCode != "" {
-		return fmt.Errorf("Moodle error: %s", result.ErrorCode)
+		return fmt.Errorf("moodle error: %s", result.ErrorCode)
 	}
 	if result.Error != "" || result.Exception != "" {
-		return fmt.Errorf("Moodle returned an error")
+		return fmt.Errorf("moodle returned an error")
 	}
 	return nil
 }
