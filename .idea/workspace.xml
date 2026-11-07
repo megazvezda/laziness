@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d93ea12a-a53f-4592-8efa-db33df933be9" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/internal/auth/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/auth/auth.go" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="GOROOT" url="file:///usr/local/go" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.028959747229318" />
+      <entry key="MS500" value="1.6082904713192878" />
+      <entry key="S2" value="4.476620280764632" />
+      <entry key="S5" value="10.98940493289158" />
+      <entry key="S10" value="19.663786664724284" />
+      <entry key="S30" value="35.770444222522954" />
+      <entry key="S60" value="44.297395727372916" />
+      <entry key="M2" value="51.456202511007696" />
+      <entry key="M5" value="65.03098701817916" />
+      <entry key="M10" value="77.41795587438193" />
+      <entry key="M15" value="83.62835152225034" />
+      <entry key="M30" value="91.35502318968501" />
+      <entry key="H1" value="95.90870791796307" />
+      <entry key="H2" value="98.38313968459119" />
+      <entry key="H4" value="99.6732382559806" />
+      <entry key="D1" value="100.7762808904233" />
+      <entry key="W1" value="100.96797603597308" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="1.342465236426313E-92" />
+      <entry key="S5" value="1.7830405470974695E-37" />
+      <entry key="S10" value="4.2226064783466086E-19" />
+      <entry key="S30" value="7.502284624496475E-7" />
+      <entry key="S60" value="8.661572965978221E-4" />
+      <entry key="M2" value="0.029430550395767734" />
+      <entry key="M5" value="0.24407278328433626" />
+      <entry key="M10" value="0.49403722864206934" />
+      <entry key="M15" value="0.6249421030395063" />
+      <entry key="M30" value="0.7905327969410925" />
+      <entry key="H1" value="0.8891191129095655" />
+      <entry key="H2" value="0.9429311284020521" />
+      <entry key="H4" value="0.9710464089846844" />
+      <entry key="D1" value="0.9951151338237632" />
+      <entry key="W1" value="0.9993006966078102" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.9667307316437246" />
+      <entry key="MS500" value="1.586535393327434" />
+      <entry key="S2" value="4.457739976397802" />
+      <entry key="S5" value="10.969013594427294" />
+      <entry key="S10" value="19.64411801676593" />
+      <entry key="S30" value="35.75790584724153" />
+      <entry key="S60" value="44.290445424478364" />
+      <entry key="M2" value="51.480818560158454" />
+      <entry key="M5" value="65.27180094667423" />
+      <entry key="M10" value="77.9096411588111" />
+      <entry key="M15" value="84.25147580797622" />
+      <entry key="M30" value="92.1444895197412" />
+      <entry key="H1" value="96.79724696898077" />
+      <entry key="H2" value="99.3257680094069" />
+      <entry key="H4" value="100.64412992736194" />
+      <entry key="D1" value="101.7713697587662" />
+      <entry key="W1" value="101.96727296854796" />
+    </decayedShown>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3,
+  &quot;fromUser&quot;: false
+}</component>
+  <component name="ProjectId" id="3LmV99iEv1QUjmg3ZlbNzbD9e9S" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.GoLinterPluginOnboardingV2&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.GoLinterPluginStorageMigration&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.GoOptimizationToolWindowEnableInLayout.v333333&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.analysis.ui.options.defaults&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.application.removed.from.services&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/whitefox/Documents/laziness&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;
+  }
+}</component>
+  <component name="RunManager" selected="Go Build.go build github.com/megazvezda/laziness">
+    <configuration name="go build github.com/megazvezda/laziness" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
+      <module name="laziness" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="github.com/megazvezda/laziness" />
+      <directory value="$PROJECT_DIR$" />
+      <auto_managed_config_id value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build github.com/megazvezda/laziness/cmd/laziness" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
+      <module name="laziness" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="github.com/megazvezda/laziness/cmd/laziness" />
+      <directory value="$PROJECT_DIR$" />
+      <auto_managed_config_id value="$PROJECT_DIR$/cmd/laziness" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-gosdk-63c95d513abe-57f1b89dcace-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-263.7307.211" />
+        <option value="bundled-js-predefined-d6986cc7102b-56aff7b04f6f-JavaScript-GO-263.7307.211" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d93ea12a-a53f-4592-8efa-db33df933be9" name="Changes" comment="" />
+      <created>1794059076666</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1794059076666</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
