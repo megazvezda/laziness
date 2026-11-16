@@ -10,8 +10,9 @@ import (
 
 // Config contains the bot credentials and the users allowed to interact with it.
 type Config struct {
-	Token          string
-	AllowedUserIDs []int64
+	Token            string
+	AllowedUserIDs   []int64
+	AllowedGroupsIDs []int64
 }
 
 // LoadConfig reads and validates the required environment variables.

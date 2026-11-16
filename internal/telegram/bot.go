@@ -15,7 +15,10 @@ import (
 
 const requestTimeout = 10 * time.Second
 
-const helpText = "Available commands:\n/start - Welcome and available commands\n/help - Show this help\n/ping - Check that the bot is responding"
+const helpText = "Available commands:\n" +
+	"/start\n" +
+	"/help\n" +
+	"/ping"
 
 // messageSender is the small part of the Telegram client that handlers need.
 type messageSender interface {
@@ -27,10 +30,11 @@ type Bot struct {
 	client       *bot.Bot
 	sender       messageSender
 	allowedUsers map[int64]struct{}
+	allowGroups  map[int64]struct{}
 	logger       *slog.Logger
 }
 
-// New constructs a bot without making network requests. A nil logger uses slog.Default.
+// New constructs a bot. Can pass nil as a logger to use slog.Default.
 func New(cfg Config, logger *slog.Logger) (*Bot, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, err
@@ -73,7 +77,7 @@ func (b *Bot) Run(ctx context.Context) error {
 	}
 	initCtx, cancel := context.WithTimeout(ctx, requestTimeout)
 	me, err := b.client.GetMe(initCtx)
-	cancel()
+	cancel() // cancel child context, free resources
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil
@@ -111,18 +115,29 @@ func (b *Bot) authorize(next bot.HandlerFunc) bot.HandlerFunc {
 			return
 		}
 		message := update.Message
-		if message.From == nil || message.Chat.Type != models.ChatTypePrivate || message.Text == "" {
+		if message.Text == "" {
 			return
 		}
-		if _, ok := b.allowedUsers[message.From.ID]; !ok {
-			return
+		switch models.Chat.Type {
+		case models.ChatTypePrivate:
+			if message.From == nil {
+				return
+			}
+			if _, ok := b.allowedUsers[message.From.ID]; !ok {
+				return
+			}
+
+		case models.ChatTypeGroup, models.ChatTypeSuperGroup:
+			if _, ok := b.allowedGroups[message.Chat.ID]; !ok {
+				return
+			}
 		}
 		next(ctx, client, update)
 	}
 }
 
 func (b *Bot) start(ctx context.Context, _ *bot.Bot, update *models.Update) {
-	b.reply(ctx, update.Message.Chat.ID, "Welcome to Laziness! This bot is an early skeleton.\n\n"+helpText)
+	b.reply(ctx, update.Message.Chat.ID, "this is a sample text. todo\n\n"+helpText)
 }
 
 func (b *Bot) help(ctx context.Context, _ *bot.Bot, update *models.Update) {
@@ -134,7 +149,7 @@ func (b *Bot) ping(ctx context.Context, _ *bot.Bot, update *models.Update) {
 }
 
 func (b *Bot) unknownMessage(ctx context.Context, _ *bot.Bot, update *models.Update) {
-	b.reply(ctx, update.Message.Chat.ID, "Use /help to see the available commands.")
+	b.reply(ctx, update.Message.Chat.ID, "did not understand you. do /help\ntodo")
 }
 
 func (b *Bot) reply(ctx context.Context, chatID int64, text string) {
