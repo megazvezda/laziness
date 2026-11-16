@@ -25,6 +25,13 @@ func LoadConfig() (Config, error) {
 		}
 		cfg.AllowedUserIDs = append(cfg.AllowedUserIDs, id)
 	}
+	for _, value := range strings.Split(os.Getenv("TELEGRAM_ALLOWED_GROUP_IDS"), ",") {
+		id, err := srtconv.Parseint(strings.TrimSpace(value), 10, 64)
+		if err != nil || id <= 0 {
+			return Config{}, fmt.Errorf("TELEGRAM_ALLOWED_GROUP_IDS must contain comma-separated positive group IDs")
+		}
+		cfg.AllowedGroupsIDs = append(cfg.AllowedGroupsIDs, id)
+	}
 	if err := cfg.validate(); err != nil {
 		return Config{}, err
 	}
