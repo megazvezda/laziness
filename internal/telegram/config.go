@@ -3,9 +3,12 @@ package telegram
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/lpernett/godotenv"
 )
 
 // Config contains the bot credentials and the users allowed to interact with it.
@@ -17,38 +20,29 @@ type Config struct {
 
 // LoadConfig reads and validates the required environment variables.
 func LoadConfig() (Config, error) {
+	if err := godotenv.Load("internal/telegram/.env"); err != nil {
+		return Config{}, fmt.Errorf("loading .env file: %w", err)
+	}
+	if strings.TrimSpace(os.Getenv("TELEGRAM_BOT_TOKEN")) == "" {
+		return Config{}, fmt.Errorf("TELEGRAM_BOT_TOKEN is required")
+	}
 	cfg := Config{Token: strings.TrimSpace(os.Getenv("TELEGRAM_BOT_TOKEN"))}
+
 	for _, value := range strings.Split(os.Getenv("TELEGRAM_ALLOWED_USER_IDS"), ",") {
-		id, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
-		if err != nil || id <= 0 {
-			return Config{}, fmt.Errorf("TELEGRAM_ALLOWED_USER_IDS must contain comma-separated positive user IDs")
+		if value == "" {
+			slog.Info("no allowed user ids provided")
+			break
 		}
+		id, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 		cfg.AllowedUserIDs = append(cfg.AllowedUserIDs, id)
 	}
 	for _, value := range strings.Split(os.Getenv("TELEGRAM_ALLOWED_GROUP_IDS"), ",") {
-		id, err := srtconv.Parseint(strings.TrimSpace(value), 10, 64)
-		if err != nil || id <= 0 {
-			return Config{}, fmt.Errorf("TELEGRAM_ALLOWED_GROUP_IDS must contain comma-separated positive group IDs")
+		id, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		if id == 0 {
+			slog.Info("no allowed group ids provided")
+			break
 		}
 		cfg.AllowedGroupsIDs = append(cfg.AllowedGroupsIDs, id)
 	}
-	if err := cfg.validate(); err != nil {
-		return Config{}, err
-	}
 	return cfg, nil
-}
-
-func (c Config) validate() error {
-	if strings.TrimSpace(c.Token) == "" {
-		return fmt.Errorf("TELEGRAM_BOT_TOKEN is required")
-	}
-	if len(c.AllowedUserIDs) == 0 {
-		return fmt.Errorf("TELEGRAM_ALLOWED_USER_IDS must contain at least one positive user ID")
-	}
-	for _, id := range c.AllowedUserIDs {
-		if id <= 0 {
-			return fmt.Errorf("TELEGRAM_ALLOWED_USER_IDS must contain only positive user IDs")
-		}
-	}
-	return nil
 }

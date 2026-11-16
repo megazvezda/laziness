@@ -27,27 +27,28 @@ type messageSender interface {
 
 // Bot handles private messages from an explicit set of Telegram users.
 type Bot struct {
-	client       *bot.Bot
-	sender       messageSender
-	allowedUsers map[int64]struct{}
-	allowGroups  map[int64]struct{}
-	logger       *slog.Logger
+	client        *bot.Bot
+	sender        messageSender
+	allowedUsers  map[int64]struct{}
+	allowedGroups map[int64]struct{}
+	logger        *slog.Logger
 }
 
 // New constructs a bot. Can pass nil as a logger to use slog.Default.
 func New(cfg Config, logger *slog.Logger) (*Bot, error) {
-	if err := cfg.validate(); err != nil {
-		return nil, err
-	}
 	if logger == nil {
 		logger = slog.Default()
 	}
 	b := &Bot{
-		allowedUsers: make(map[int64]struct{}, len(cfg.AllowedUserIDs)),
-		logger:       logger,
+		allowedUsers:  make(map[int64]struct{}, len(cfg.AllowedUserIDs)),
+		allowedGroups: make(map[int64]struct{}, len(cfg.AllowedGroupsIDs)),
+		logger:        logger,
 	}
 	for _, id := range cfg.AllowedUserIDs {
 		b.allowedUsers[id] = struct{}{}
+	}
+	for _, id := range cfg.AllowedGroupsIDs {
+		b.allowedGroups[id] = struct{}{}
 	}
 	client, err := bot.New(strings.TrimSpace(cfg.Token),
 		// Authenticate in Run so startup requests share the shutdown context.
@@ -118,7 +119,7 @@ func (b *Bot) authorize(next bot.HandlerFunc) bot.HandlerFunc {
 		if message.Text == "" {
 			return
 		}
-		switch models.Chat.Type {
+		switch message.Chat.Type {
 		case models.ChatTypePrivate:
 			if message.From == nil {
 				return
@@ -127,7 +128,7 @@ func (b *Bot) authorize(next bot.HandlerFunc) bot.HandlerFunc {
 				return
 			}
 
-		case models.ChatTypeGroup, models.ChatTypeSuperGroup:
+		case models.ChatTypeGroup, models.ChatTypeSupergroup:
 			if _, ok := b.allowedGroups[message.Chat.ID]; !ok {
 				return
 			}
