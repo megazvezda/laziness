@@ -1,5 +1,9 @@
 package models
 
+type SafeUserInfo struct {
+	FullName string
+	UserID   int64
+}
 type Credentials struct {
 	CredID   string
 	Password string

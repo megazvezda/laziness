@@ -103,6 +103,7 @@ func (b *Bot) registerCommands(username string) {
 		{"start", b.start},
 		{"help", b.help},
 		{"ping", b.ping},
+		{"auth", b.authMoodle},
 	}
 	for _, command := range commands {
 		b.client.RegisterHandler(bot.HandlerTypeMessageText, command.name, bot.MatchTypeCommandStartOnly, command.handler)

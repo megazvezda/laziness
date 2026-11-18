@@ -21,18 +21,25 @@ const (
 
 // Fields used from Moodle's token and site-info responses.
 type moodleResponse struct {
+	//safe
+	UserID   int64  `json:"userid"`
+	FullName string `json:"fullname"`
+
+	//private
 	Token        string `json:"token"`
 	PrivateToken string `json:"privatetoken"`
-	UserID       int64  `json:"userid"`
-	Error        string `json:"error"`
-	ErrorCode    string `json:"errorcode"`
-	Exception    string `json:"exception"`
+
+	//misc
+	Error     string `json:"error"`
+	ErrorCode string `json:"errorcode"`
+	Exception string `json:"exception"`
 }
 
 var client = &http.Client{
 	Timeout: 15 * time.Second,
 }
 
+// AuthenticateMoodle returns a struct containing tokens and an internal ID used in Moodle.
 func AuthenticateMoodle(ctx context.Context, creds models.Credentials) (models.Student, error) {
 	if strings.TrimSpace(creds.CredID) == "" || creds.Password == "" {
 		return models.Student{}, fmt.Errorf("username and password are required")
@@ -71,6 +78,28 @@ func AuthenticateMoodle(ctx context.Context, creds models.Credentials) (models.S
 			PublicToken:  tokens.Token,
 			PrivateToken: tokens.PrivateToken,
 		},
+	}, nil
+}
+
+func GetUserInfo(ctx context.Context, tokens models.Tokens) (models.SafeUserInfo, error) {
+	if strings.TrimSpace(tokens.PublicToken) == "" {
+		return models.SafeUserInfo{}, fmt.Errorf("username and password are required")
+	}
+
+	values := url.Values{}
+	values.Set("moodlewsrestformat", "json")
+	values.Set("wstoken", tokens.PublicToken)
+	values.Set("wsfunction", "core_webservice_get_site_info")
+	values.Set("service", moodleService)
+
+	var response moodleResponse
+	if err := postMoodle(ctx, "/webservice/rest/server.php", values, &response); err != nil {
+		return models.SafeUserInfo{}, fmt.Errorf("get user-info from Moodle: %w", err)
+	}
+
+	return models.SafeUserInfo{
+		FullName: response.FullName,
+		UserID:   response.UserID,
 	}, nil
 }
 
