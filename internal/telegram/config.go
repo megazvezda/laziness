@@ -28,7 +28,7 @@ func LoadConfig() (Config, error) {
 	}
 	cfg := Config{Token: strings.TrimSpace(os.Getenv("TELEGRAM_BOT_TOKEN"))}
 
-	for _, value := range strings.Split(os.Getenv("TELEGRAM_ALLOWED_USER_IDS"), ",") {
+	for value := range strings.SplitSeq(os.Getenv("TELEGRAM_ALLOWED_USER_IDS"), ",") {
 		if value == "" {
 			slog.Info("no allowed user ids provided")
 			break
@@ -36,7 +36,7 @@ func LoadConfig() (Config, error) {
 		id, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 		cfg.AllowedUserIDs = append(cfg.AllowedUserIDs, id)
 	}
-	for _, value := range strings.Split(os.Getenv("TELEGRAM_ALLOWED_GROUP_IDS"), ",") {
+	for value := range strings.SplitSeq(os.Getenv("TELEGRAM_ALLOWED_GROUP_IDS"), ",") {
 		id, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 		if id == 0 {
 			slog.Info("no allowed group ids provided")
