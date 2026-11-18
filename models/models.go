@@ -19,3 +19,11 @@ type Student struct {
 	Credentials Credentials
 	Tokens      Tokens
 }
+
+type DBRecord struct {
+	FullName       string
+	MoodleUserID   int64
+	TelegramUserID int64
+	PublicToken    string
+	PrivateToken   string
+}
