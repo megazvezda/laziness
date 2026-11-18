@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -27,14 +28,19 @@ func (b *Bot) authMoodle(ctx context.Context, _ *bot.Bot, update *tgmodels.Updat
 	}
 	res, err := auth.AuthenticateMoodle(ctx, creds)
 	if err != nil {
-		b.reply(ctx, update.Message.Chat.ID, "Failed to authenticate into Moodle")
+		if !errors.Is(err, context.Canceled) {
+			b.logger.ErrorContext(ctx, "Moodle authentication failed", "error_kind", errorKind(err))
+			b.reply(ctx, update.Message.Chat.ID, "Failed to authenticate into Moodle")
+		}
 		return
 	}
 	userInfo, err := auth.GetUserInfo(ctx, res.Tokens)
 	if err != nil {
-		b.reply(ctx, update.Message.Chat.ID, "Failed to get user-info after authenticating")
+		if !errors.Is(err, context.Canceled) {
+			b.logger.ErrorContext(ctx, "Moodle user-info retrieval failed", "error_kind", errorKind(err))
+			b.reply(ctx, update.Message.Chat.ID, "Failed to get user-info after authenticating")
+		}
 		return
 	}
 	b.reply(ctx, update.Message.Chat.ID, fmt.Sprintf("Logged in as %s (%d)", userInfo.FullName, userInfo.UserID))
-
 }

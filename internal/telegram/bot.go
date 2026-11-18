@@ -18,7 +18,8 @@ const requestTimeout = 10 * time.Second
 const helpText = "Available commands:\n" +
 	"/start\n" +
 	"/help\n" +
-	"/ping"
+	"/ping\n" +
+	"/auth <username> <password>\n"
 
 // messageSender is the small part of the Telegram client that handlers need.
 type messageSender interface {
