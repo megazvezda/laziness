@@ -90,7 +90,7 @@ func GetUserInfo(ctx context.Context, tokens models.Tokens) (models.SafeUserInfo
 	values.Set("moodlewsrestformat", "json")
 	values.Set("wstoken", tokens.PublicToken)
 	values.Set("wsfunction", "core_webservice_get_site_info")
-	values.Set("service", moodleService)
+	//values.Set("service", moodleService)
 
 	var response moodleResponse
 	if err := postMoodle(ctx, "/webservice/rest/server.php", values, &response); err != nil {
