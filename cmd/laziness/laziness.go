@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/megazvezda/laziness/internal/telegram"
+	"github.com/megazvezda/laziness/storage"
 )
 
 func main() {
@@ -17,6 +18,17 @@ func main() {
 func run() int {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	slog.SetDefault(logger)
+
+	db, err := storage.Open(context.Background(), "db/laziness.sqlite")
+	if err != nil {
+		logger.Error("Could not initialize database", "error", err)
+		return 1
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("Could not close database", "error", err)
+		}
+	}()
 
 	cfg, err := telegram.LoadConfig()
 	if err != nil {
