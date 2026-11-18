@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -19,7 +20,8 @@ const helpText = "Available commands:\n" +
 	"/start\n" +
 	"/help\n" +
 	"/ping\n" +
-	"/auth <username> <password>\n"
+	"/auth <username> <password>\n" +
+	"/whoami"
 
 // messageSender is the small part of the Telegram client that handlers need.
 type messageSender interface {
@@ -33,10 +35,14 @@ type Bot struct {
 	allowedUsers  map[int64]struct{}
 	allowedGroups map[int64]struct{}
 	logger        *slog.Logger
+	db            *sql.DB
 }
 
 // New constructs a bot. Can pass nil as a logger to use slog.Default.
-func New(cfg Config, logger *slog.Logger) (*Bot, error) {
+func New(cfg Config, logger *slog.Logger, db *sql.DB) (*Bot, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database is required")
+	}
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -44,6 +50,7 @@ func New(cfg Config, logger *slog.Logger) (*Bot, error) {
 		allowedUsers:  make(map[int64]struct{}, len(cfg.AllowedUserIDs)),
 		allowedGroups: make(map[int64]struct{}, len(cfg.AllowedGroupsIDs)),
 		logger:        logger,
+		db:            db,
 	}
 	for _, id := range cfg.AllowedUserIDs {
 		b.allowedUsers[id] = struct{}{}
@@ -105,6 +112,7 @@ func (b *Bot) registerCommands(username string) {
 		{"help", b.help},
 		{"ping", b.ping},
 		{"auth", b.authMoodle},
+		{"whoami", b.whoami},
 	}
 	for _, command := range commands {
 		b.client.RegisterHandler(bot.HandlerTypeMessageText, command.name, bot.MatchTypeCommandStartOnly, command.handler)

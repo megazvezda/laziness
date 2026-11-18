@@ -35,7 +35,7 @@ func run() int {
 		logger.Error("Invalid configuration", "error", err)
 		return 1
 	}
-	b, err := telegram.New(cfg, logger)
+	b, err := telegram.New(cfg, logger, db)
 	if err != nil {
 		logger.Error("Could not create Telegram bot", "error", err)
 		return 1
