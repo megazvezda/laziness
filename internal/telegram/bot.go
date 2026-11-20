@@ -22,7 +22,8 @@ const helpText = "Available commands:\n" +
 	"/help\n" +
 	"/ping\n" +
 	"/auth (start Moodle login in an allowed group)\n" +
-	"/whoami"
+	"/whoami\n" +
+	"/logout"
 
 // messageSender is the small part of the Telegram client that handlers need.
 type messageSender interface {
@@ -125,6 +126,7 @@ func (b *Bot) registerCommands(username string) {
 		{"ping", b.ping},
 		{"auth", b.authMoodle},
 		{"whoami", b.whoami},
+		{"logout", b.logout},
 	}
 	for _, command := range commands {
 		b.client.RegisterHandler(bot.HandlerTypeMessageText, command.name, bot.MatchTypeCommandStartOnly, command.handler)

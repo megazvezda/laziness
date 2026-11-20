@@ -61,6 +61,27 @@ func RetrieveSession(ctx context.Context, db *sql.DB, telegramUserID int64) (mod
 	return record, nil
 }
 
+// DeleteSession removes the stored Moodle tokens for a Telegram user.
+// The returned bool reports whether a session existed.
+func DeleteSession(ctx context.Context, db *sql.DB, telegramUserID int64) (bool, error) {
+	if telegramUserID <= 0 {
+		return false, fmt.Errorf("delete session: Telegram user ID must be positive")
+	}
+
+	result, err := db.ExecContext(ctx, `
+		DELETE FROM moodle_sessions
+		WHERE telegram_user_id = ?
+	`, telegramUserID)
+	if err != nil {
+		return false, fmt.Errorf("delete Moodle session: %w", err)
+	}
+	deleted, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("delete Moodle session: %w", err)
+	}
+	return deleted > 0, nil
+}
+
 func ListSessions(ctx context.Context, db *sql.DB) ([]models.DBRecord, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT telegram_user_id, moodle_user_id, moodle_fullname, public_token, private_token
