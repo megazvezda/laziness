@@ -109,6 +109,21 @@ func (b *Bot) Run(ctx context.Context) error {
 		}
 		b.client.RegisterHandlerMatchFunc(isGroupPhoto, b.handleGroupPhoto)
 	}
+
+	// Drop Telegram's backlog so commands and photos sent while offline are skipped.
+	dropCtx, cancel := context.WithTimeout(ctx, requestTimeout)
+	dropped, err := b.client.DeleteWebhook(dropCtx, &bot.DeleteWebhookParams{DropPendingUpdates: true})
+	cancel()
+	if ctx.Err() != nil {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("drop pending Telegram updates (%s)", errorKind(err))
+	}
+	if !dropped {
+		return fmt.Errorf("Telegram did not drop pending updates")
+	}
+
 	b.logger.InfoContext(ctx, "Telegram bot started", "transport", "long_polling")
 	b.client.Start(ctx)
 	b.logger.InfoContext(ctx, "Telegram bot stopped")
