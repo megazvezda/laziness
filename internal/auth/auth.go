@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	moodleService = "moodle_mobile_app"
-	moodleURL     = "https://moodle.vilniustech.lt"
+	moodleService        = "moodle_mobile_app"
+	moodleURL            = "https://moodle.vilniustech.lt"
+	autoLoginKeyFunction = "tool_mobile_get_autologin_key"
 )
 
 // Fields used from Moodle's token and site-info responses.
@@ -91,7 +92,7 @@ func GetAutoLoginKey(ctx context.Context, tokens models.Tokens) (string, error) 
 	values.Set("moodlewsrestformat", "json")
 	values.Set("wstoken", tokens.PublicToken)
 	values.Set("privatetoken", tokens.PrivateToken)
-	values.Set("wsfunction", "tool_mobile_get_autologin_key") //sensitive
+	values.Set("wsfunction", autoLoginKeyFunction)
 
 	var response moodleResponse
 
@@ -138,6 +139,9 @@ func postMoodle(ctx context.Context, path string, values url.Values, result *moo
 		return fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if values.Get("wsfunction") == autoLoginKeyFunction {
+		req.Header.Set("User-Agent", "MoodleMobile")
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {

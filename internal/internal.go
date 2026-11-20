@@ -7,8 +7,13 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
+	"slices"
+	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/megazvezda/laziness/internal/auth"
 	"github.com/megazvezda/laziness/internal/validations"
 	"github.com/megazvezda/laziness/models"
 	"github.com/piglig/go-qr/v2"
@@ -45,8 +50,8 @@ func (s *AttendanceService) getOrCreateSession(moodleUserID int64) (*studentSess
 			if validations.ValidateMoodleLink(req.URL.String()) != nil {
 				return http.ErrUseLastResponse
 			}
-			if len(via) >= 10 {
-				return fmt.Errorf("too many Moodle redirects")
+			if via[0].Method == http.MethodPost && req.Method != http.MethodGet {
+				return http.ErrUseLastResponse
 			}
 			return nil
 		},
@@ -86,6 +91,20 @@ func (s *AttendanceService) MarkAttendanceForStudent(ctx context.Context, studen
 		}
 		return fmt.Errorf("failed to send attendance request")
 	}
+	if requiresUniversitySignIn(resp) {
+		resp.Body.Close()
+		key, err := auth.GetAutoLoginKey(ctx, models.Tokens{
+			PublicToken:  student.PublicToken,
+			PrivateToken: student.PrivateToken,
+		})
+		if err != nil {
+			return err
+		}
+		resp, err = session.openAutoLogin(ctx, student.MoodleUserID, key, link)
+		if err != nil {
+			return err
+		}
+	}
 	defer resp.Body.Close()
 	slog.DebugContext(ctx, "Moodle attendance page received",
 		"moodle_user_id", student.MoodleUserID,
@@ -94,10 +113,8 @@ func (s *AttendanceService) MarkAttendanceForStudent(ctx context.Context, studen
 	)
 
 	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
-		location, err := resp.Location()
-		if err == nil && location.Scheme == "https" &&
-			location.Host == "fs.vilniustech.lt" && location.Path == "/adfs/ls/" {
-			return fmt.Errorf("Moodle requires university sign-in")
+		if requiresUniversitySignIn(resp) {
+			return fmt.Errorf("Moodle still requires university sign-in after auto-login")
 		}
 		return fmt.Errorf("unexpected Moodle redirect (HTTP %d)", resp.StatusCode)
 	}
@@ -114,23 +131,125 @@ func (s *AttendanceService) MarkAttendanceForStudent(ctx context.Context, studen
 		return fmt.Errorf("Moodle response did not contain an attendance form")
 	}
 	action, err := resp.Request.URL.Parse(attr(form, "action"))
-	if err != nil || validations.ValidateMoodleLink(action.String()) != nil {
+	if err != nil || validations.ValidateMoodleLink(action.String()) != nil ||
+		action.Path != "/mod/attendance/attendance.php" ||
+		!strings.EqualFold(attr(form, "method"), http.MethodPost) {
 		return fmt.Errorf("invalid Moodle attendance form action")
 	}
-	var fields []string
+	return session.submitAttendance(ctx, action, form)
+}
+
+func (s *studentSession) submitAttendance(ctx context.Context, action *url.URL, form *html.Node) error {
+	values, err := attendanceFormValues(form)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.String(), strings.NewReader(values.Encode()))
+	if err != nil {
+		return fmt.Errorf("build Moodle attendance submission")
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := s.client.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return fmt.Errorf("Moodle attendance submission could not be confirmed: %w", ctx.Err())
+		}
+		return fmt.Errorf("Moodle attendance submission could not be confirmed after a request error")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK || resp.Request.Method != http.MethodGet ||
+		resp.Request.URL.Path != "/mod/attendance/view.php" {
+		return fmt.Errorf("Moodle attendance submission could not be confirmed (HTTP %d)", resp.StatusCode)
+	}
+	doc, err := html.Parse(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read Moodle attendance confirmation: %w", err)
+	}
+	for n := range doc.Descendants() {
+		if n.Type == html.ElementNode && attr(n, "role") == "alert" &&
+			strings.Contains(nodeText(n), "Your attendance in this session has been recorded.") {
+			return nil
+		}
+	}
+	return fmt.Errorf("Moodle did not show the attendance confirmation")
+}
+
+func attendanceFormValues(form *html.Node) (url.Values, error) {
+	values := make(url.Values)
 	for n := range form.Descendants() {
-		if n.Type == html.ElementNode && n.Data == "input" {
-			if name := attr(n, "name"); name != "" {
-				fields = append(fields, name)
+		if n.Type != html.ElementNode || n.Data != "input" {
+			continue
+		}
+		if slices.ContainsFunc(n.Attr, func(a html.Attribute) bool { return a.Key == "disabled" }) {
+			continue
+		}
+		name, value := attr(n, "name"), attr(n, "value")
+		if name == "" {
+			continue
+		}
+		switch attr(n, "type") {
+		case "hidden":
+			values.Add(name, value)
+		case "radio":
+			if name != "status" || value == "" {
+				continue
+			}
+			for parent := n.Parent; parent != nil && parent != form; parent = parent.Parent {
+				if parent.Type == html.ElementNode && parent.Data == "label" {
+					if strings.EqualFold(nodeText(parent), "Present") {
+						values.Add(name, value)
+					}
+					break
+				}
+			}
+		case "submit":
+			if name == "submitbutton" {
+				values.Add(name, value)
 			}
 		}
 	}
-	slog.InfoContext(ctx, "Attendance form found",
-		"method", attr(form, "method"),
-		"path", action.Path,
-		"fields", fields,
-	)
-	return nil
+	if len(values["status"]) != 1 {
+		return nil, fmt.Errorf("attendance form must offer exactly one Present option")
+	}
+	if values.Get("sessid") == "" || values.Get("sesskey") == "" || len(values["submitbutton"]) != 1 {
+		return nil, fmt.Errorf("Moodle attendance form is missing required submission fields")
+	}
+	return values, nil
+}
+
+func requiresUniversitySignIn(resp *http.Response) bool {
+	if resp.StatusCode < 300 || resp.StatusCode >= 400 {
+		return false
+	}
+	location, err := resp.Location()
+	return err == nil && location.Scheme == "https" &&
+		location.Host == "fs.vilniustech.lt" && location.Path == "/adfs/ls/"
+}
+
+func (s *studentSession) openAutoLogin(ctx context.Context, moodleUserID int64, key, attendanceLink string) (*http.Response, error) {
+	query := url.Values{
+		"userid":  {strconv.FormatInt(moodleUserID, 10)},
+		"key":     {key},
+		"urltogo": {attendanceLink},
+	}
+	endpoint := url.URL{
+		Scheme:   "https",
+		Host:     "moodle.vilniustech.lt",
+		Path:     "/admin/tool/mobile/autologin.php",
+		RawQuery: query.Encode(),
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("build Moodle auto-login request")
+	}
+	resp, err := s.client.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, fmt.Errorf("send Moodle auto-login request")
+	}
+	return resp, nil
 }
 
 func attr(n *html.Node, name string) string {
@@ -140,6 +259,16 @@ func attr(n *html.Node, name string) string {
 		}
 	}
 	return ""
+}
+
+func nodeText(n *html.Node) string {
+	var text strings.Builder
+	for child := range n.Descendants() {
+		if child.Type == html.TextNode {
+			text.WriteString(child.Data)
+		}
+	}
+	return strings.Join(strings.Fields(text.String()), " ")
 }
 
 func findAttendanceForm(doc *html.Node) *html.Node {
