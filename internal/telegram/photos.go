@@ -66,9 +66,9 @@ func (b *Bot) handleGroupPhoto(ctx context.Context, client *bot.Bot, update *mod
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
+	photoCtx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
-	file, err := client.GetFile(ctx, &bot.GetFileParams{FileID: photo.FileID})
+	file, err := client.GetFile(photoCtx, &bot.GetFileParams{FileID: photo.FileID})
 	if err != nil {
 		b.logger.WarnContext(ctx, "Could not get Telegram photo", "error_kind", errorKind(err))
 		return
@@ -77,7 +77,7 @@ func (b *Bot) handleGroupPhoto(ctx context.Context, client *bot.Bot, update *mod
 		b.logger.WarnContext(ctx, "Telegram did not provide a photo download path")
 		return
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, client.FileDownloadLink(file), nil)
+	req, err := http.NewRequestWithContext(photoCtx, http.MethodGet, client.FileDownloadLink(file), nil)
 	if err != nil {
 		b.logger.WarnContext(ctx, "Could not build Telegram photo download request")
 		return
@@ -113,9 +113,12 @@ func (b *Bot) handleGroupPhoto(ctx context.Context, client *bot.Bot, update *mod
 	if err != nil {
 		return
 	}
-	if _, err := resolveQR(img); err == nil {
-		b.logger.InfoContext(ctx, "Moodle attendance QR detected", "chat_id", message.Chat.ID, "message_id", message.ID)
+	link, err := resolveQR(img)
+	if err != nil {
+		return
 	}
+	b.logger.InfoContext(ctx, "Moodle attendance QR detected", "chat_id", message.Chat.ID, "message_id", message.ID)
+	b.markGroupAttendance(ctx, message.Chat.ID, link)
 }
 
 func (b *Bot) preparePhotoCache() error {

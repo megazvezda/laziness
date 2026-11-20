@@ -116,13 +116,15 @@ func (s *AttendanceService) MarkAttendanceForStudent(ctx context.Context, studen
 		}
 		return fmt.Errorf("unexpected Moodle redirect (HTTP %d)", resp.StatusCode)
 	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Moodle returned HTTP %d", resp.StatusCode)
-	}
-
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		return fmt.Errorf("parse attendance page: %w", err)
+		return fmt.Errorf("could not read Moodle attendance page (HTTP %d)", resp.StatusCode)
+	}
+	if err := attendancePageError(doc); err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Moodle returned HTTP %d", resp.StatusCode)
 	}
 	form := findAttendanceForm(doc)
 	if form == nil {
@@ -155,13 +157,16 @@ func (s *studentSession) submitAttendance(ctx context.Context, action *url.URL, 
 		return fmt.Errorf("Moodle attendance submission could not be confirmed after a request error")
 	}
 	defer resp.Body.Close()
+	doc, err := html.Parse(resp.Body)
+	if err != nil {
+		return fmt.Errorf("could not read Moodle attendance confirmation (HTTP %d)", resp.StatusCode)
+	}
+	if err := attendancePageError(doc); err != nil {
+		return err
+	}
 	if resp.StatusCode != http.StatusOK || resp.Request.Method != http.MethodGet ||
 		resp.Request.URL.Path != "/mod/attendance/view.php" {
 		return fmt.Errorf("Moodle attendance submission could not be confirmed (HTTP %d)", resp.StatusCode)
-	}
-	doc, err := html.Parse(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read Moodle attendance confirmation: %w", err)
 	}
 	for n := range doc.Descendants() {
 		if n.Type == html.ElementNode && attr(n, "role") == "alert" &&
@@ -170,6 +175,25 @@ func (s *studentSession) submitAttendance(ctx context.Context, action *url.URL, 
 		}
 	}
 	return fmt.Errorf("Moodle did not show the attendance confirmation")
+}
+
+func attendancePageError(doc *html.Node) error {
+	for node := range doc.Descendants() {
+		if node.Type != html.TextNode || node.Parent.Data == "script" || node.Parent.Data == "style" {
+			continue
+		}
+		message := strings.TrimSpace(node.Data)
+		switch {
+		case message == "Your attendance has already been set.",
+			strings.HasPrefix(message, "Your attendance has already been marked as:"):
+			return fmt.Errorf("attendance was already recorded")
+		case message == "QR session has expired.", strings.HasPrefix(message, "The QR code has expired"):
+			return fmt.Errorf("the QR code has expired")
+		case message == "This session is not currently available for self-marking":
+			return fmt.Errorf("the session is not open for self-marking")
+		}
+	}
+	return nil
 }
 
 func attendanceFormValues(form *html.Node) (url.Values, error) {

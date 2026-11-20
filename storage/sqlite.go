@@ -61,6 +61,34 @@ func RetrieveSession(ctx context.Context, db *sql.DB, telegramUserID int64) (mod
 	return record, nil
 }
 
+func ListSessions(ctx context.Context, db *sql.DB) ([]models.DBRecord, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT telegram_user_id, moodle_user_id, moodle_fullname, public_token, private_token
+		FROM moodle_sessions
+		ORDER BY telegram_user_id
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list Moodle sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var records []models.DBRecord
+	for rows.Next() {
+		var record models.DBRecord
+		if err := rows.Scan(
+			&record.TelegramUserID, &record.MoodleUserID, &record.FullName,
+			&record.PublicToken, &record.PrivateToken,
+		); err != nil {
+			return nil, fmt.Errorf("read Moodle session: %w", err)
+		}
+		records = append(records, record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list Moodle sessions: %w", err)
+	}
+	return records, nil
+}
+
 func Open(ctx context.Context, path string) (*sql.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, fmt.Errorf("create database directory: %w", err)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/megazvezda/laziness/internal"
 )
 
 const requestTimeout = 10 * time.Second
@@ -37,6 +38,7 @@ type Bot struct {
 	logger        *slog.Logger
 	db            *sql.DB
 	photoDir      string
+	attendance    internal.AttendanceService
 }
 
 // New constructs a bot. Can pass nil as a logger to use slog.Default.
@@ -65,7 +67,7 @@ func New(cfg Config, logger *slog.Logger, db *sql.DB) (*Bot, error) {
 		bot.WithAllowedUpdates(bot.AllowedUpdates{"message"}),
 		bot.WithNotAsyncHandlers(),
 		bot.WithMiddlewares(b.authorize),
-		bot.WithDefaultHandler(b.unknownMessage),
+		bot.WithDefaultHandler(func(context.Context, *bot.Bot, *models.Update) {}),
 		bot.WithErrorsHandler(func(err error) {
 			if !errors.Is(err, context.Canceled) {
 				logger.Error("Telegram update processing failed", "error_kind", errorKind(err))
@@ -164,13 +166,6 @@ func (b *Bot) help(ctx context.Context, _ *bot.Bot, update *models.Update) {
 
 func (b *Bot) ping(ctx context.Context, _ *bot.Bot, update *models.Update) {
 	b.reply(ctx, update.Message.Chat.ID, "pong")
-}
-
-func (b *Bot) unknownMessage(ctx context.Context, _ *bot.Bot, update *models.Update) {
-	if len(update.Message.Photo) > 0 {
-		return
-	}
-	b.reply(ctx, update.Message.Chat.ID, "did not understand you. do /help\ntodo")
 }
 
 func (b *Bot) reply(ctx context.Context, chatID int64, text string) {
