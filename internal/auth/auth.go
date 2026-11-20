@@ -33,6 +33,7 @@ type moodleResponse struct {
 	Error     string `json:"error"`
 	ErrorCode string `json:"errorcode"`
 	Exception string `json:"exception"`
+	Key       string `json:"key"`
 }
 
 var client = &http.Client{
@@ -81,9 +82,32 @@ func AuthenticateMoodle(ctx context.Context, creds models.Credentials) (models.S
 	}, nil
 }
 
+func GetAutoLoginKey(ctx context.Context, tokens models.Tokens) (string, error) {
+	if strings.TrimSpace(tokens.PublicToken) == "" || strings.TrimSpace(tokens.PrivateToken) == "" {
+		return "", fmt.Errorf("username and password are required")
+	}
+
+	values := url.Values{}
+	values.Set("moodlewsrestformat", "json")
+	values.Set("wstoken", tokens.PublicToken)
+	values.Set("privatetoken", tokens.PrivateToken)
+	values.Set("wsfunction", "tool_mobile_get_autologin_key") //sensitive
+
+	var response moodleResponse
+
+	if err := postMoodle(ctx, "/webservice/rest/server.php", values, &response); err != nil {
+		return "", fmt.Errorf("get Moodle auto-login key: %w", err)
+	}
+	if strings.TrimSpace(response.Key) == "" {
+		return "", fmt.Errorf("auto-login response is missing a key")
+	}
+
+	return response.Key, nil
+}
+
 func GetUserInfo(ctx context.Context, tokens models.Tokens) (models.SafeUserInfo, error) {
 	if strings.TrimSpace(tokens.PublicToken) == "" {
-		return models.SafeUserInfo{}, fmt.Errorf("username and password are required")
+		return models.SafeUserInfo{}, fmt.Errorf("public token is required")
 	}
 
 	values := url.Values{}
