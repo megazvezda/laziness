@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"errors"
+	"math/rand/v2"
 	"net/url"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 const (
 	attendanceWorkers = 3
 	attendanceTimeout = 20 * time.Second
+	// spread the requests out a bit so the accounts don't all hit Moodle at once
+	attendanceJitter = 3 * time.Second
 )
 
 func (b *Bot) markGroupAttendance(ctx context.Context, chatID int64, link string) {
@@ -40,6 +43,10 @@ func (b *Bot) markGroupAttendance(ctx context.Context, chatID int64, link string
 	for range min(attendanceWorkers, len(students)) {
 		go func() {
 			for student := range jobs {
+				if err := waitJitter(ctx, attendanceJitter); err != nil {
+					results <- attendanceResult{FullName: student.FullName, err: err}
+					continue
+				}
 				b.logger.Info("Worker received a student", "moodle_user_id", student.MoodleUserID)
 				attemptCtx, cancel := context.WithTimeout(ctx, attendanceTimeout)
 				err := b.attendance.MarkAttendanceForStudent(attemptCtx, student, link)
@@ -65,5 +72,19 @@ func (b *Bot) markGroupAttendance(ctx context.Context, chatID int64, link string
 			reason = "could not reach Moodle"
 		}
 		b.reply(ctx, chatID, "Could not mark attendance for "+result.FullName+": "+reason)
+	}
+}
+
+func waitJitter(ctx context.Context, max time.Duration) error {
+	if max <= 0 {
+		return nil
+	}
+	timer := time.NewTimer(rand.N(max))
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
 }
