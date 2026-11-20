@@ -36,6 +36,7 @@ type Bot struct {
 	allowedGroups map[int64]struct{}
 	logger        *slog.Logger
 	db            *sql.DB
+	photoDir      string
 }
 
 // New constructs a bot. Can pass nil as a logger to use slog.Default.
@@ -97,6 +98,12 @@ func (b *Bot) Run(ctx context.Context) error {
 		return fmt.Errorf("initialize Telegram bot: Telegram returned no bot username")
 	}
 	b.registerCommands(me.Username)
+	if len(b.allowedGroups) > 0 {
+		if err := b.preparePhotoCache(); err != nil {
+			return fmt.Errorf("prepare Telegram photo cache: %w", err)
+		}
+		b.client.RegisterHandlerMatchFunc(isGroupPhoto, b.handleGroupPhoto)
+	}
 	b.logger.InfoContext(ctx, "Telegram bot started", "transport", "long_polling")
 	b.client.Start(ctx)
 	b.logger.InfoContext(ctx, "Telegram bot stopped")
@@ -126,12 +133,12 @@ func (b *Bot) authorize(next bot.HandlerFunc) bot.HandlerFunc {
 			return
 		}
 		message := update.Message
-		if message.Text == "" {
+		if message.Text == "" && len(message.Photo) == 0 {
 			return
 		}
 		switch message.Chat.Type {
 		case models.ChatTypePrivate:
-			if message.From == nil {
+			if message.From == nil || message.Text == "" {
 				return
 			}
 			if _, ok := b.allowedUsers[message.From.ID]; !ok {
@@ -160,6 +167,9 @@ func (b *Bot) ping(ctx context.Context, _ *bot.Bot, update *models.Update) {
 }
 
 func (b *Bot) unknownMessage(ctx context.Context, _ *bot.Bot, update *models.Update) {
+	if len(update.Message.Photo) > 0 {
+		return
+	}
 	b.reply(ctx, update.Message.Chat.ID, "did not understand you. do /help\ntodo")
 }
 

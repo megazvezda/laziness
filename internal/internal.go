@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"image"
 	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
@@ -16,7 +15,6 @@ import (
 	"github.com/megazvezda/laziness/internal/auth"
 	"github.com/megazvezda/laziness/internal/validations"
 	"github.com/megazvezda/laziness/models"
-	"github.com/piglig/go-qr/v2"
 	"github.com/pkg/browser"
 	"golang.org/x/net/html"
 )
@@ -299,13 +297,4 @@ func openLink(link string) error {
 		slog.Error("Couldn't open link", "error", err, "url", link)
 	}
 	return nil // todo
-}
-
-func resolveQR(img image.Image) *qr.DecodeResult {
-	slog.Info("Decoding the image", "width", img.Bounds().Dx(), "height", img.Bounds().Dy())
-	res, err := qr.Decode(img)
-	if err != nil {
-		slog.Error("Couldn't decode the image", "error", err, "width", img.Bounds().Dx(), "height", img.Bounds().Dy())
-	}
-	return res
 }
