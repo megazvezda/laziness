@@ -81,5 +81,5 @@ func (b *Bot) whoami(ctx context.Context, _ *bot.Bot, update *tgmodels.Update) {
 		}
 		return
 	}
-	b.reply(ctx, message.Chat.ID, fmt.Sprintf("Saved Moodle account: %s (%d)", record.FullName, record.MoodleUserID))
+	b.reply(ctx, message.Chat.ID, fmt.Sprintf("Sleeping as: %s (%d)", record.FullName, record.MoodleUserID))
 }
