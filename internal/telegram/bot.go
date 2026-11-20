@@ -21,7 +21,7 @@ const helpText = "Available commands:\n" +
 	"/start\n" +
 	"/help\n" +
 	"/ping\n" +
-	"/auth <username> <password>\n" +
+	"/auth (start Moodle login in an allowed group)\n" +
 	"/whoami"
 
 // messageSender is the small part of the Telegram client that handlers need.
@@ -39,6 +39,8 @@ type Bot struct {
 	db            *sql.DB
 	photoDir      string
 	attendance    internal.AttendanceService
+	username      string
+	authRequests  moodleAuthRequests
 }
 
 // New constructs a bot. Can pass nil as a logger to use slog.Default.
@@ -113,6 +115,7 @@ func (b *Bot) Run(ctx context.Context) error {
 }
 
 func (b *Bot) registerCommands(username string) {
+	b.username = username
 	commands := []struct {
 		name    string
 		handler bot.HandlerFunc
@@ -141,6 +144,9 @@ func (b *Bot) authorize(next bot.HandlerFunc) bot.HandlerFunc {
 		switch message.Chat.Type {
 		case models.ChatTypePrivate:
 			if message.From == nil || message.Text == "" {
+				return
+			}
+			if b.handlePrivateMoodleAuth(ctx, client, message) {
 				return
 			}
 			if _, ok := b.allowedUsers[message.From.ID]; !ok {
